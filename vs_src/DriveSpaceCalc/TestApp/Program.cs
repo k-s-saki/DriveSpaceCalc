@@ -17,13 +17,14 @@ namespace TestApp
         static void Main(string[] args)
         {
             // 元のベクトル v(vx, vy, vz)
-            Vector3 v = new Vector3(1, 0, 0); // 例: X軸に沿ったベクトル
+            Vector3 v1 = new Vector3(1, 0, 0);
+            Vector3 p1 = new Vector3(1, 0, 0);
 
             // 変換先のベクトル p(px, py, pz)
-            Vector3 p = new Vector3(0, 0, 1); // 例: Y軸に沿ったベクトル
+            Vector3 v2 = new Vector3(0, 0, 1);
 
             // クオータニオンを求めるための手順
-            Quaternion q = CalculateQuaternion(v, p);
+            Quaternion q = CalculateQuaternion(v1, v2);
 
             // 求めたクオータニオンからYaw, Pitch, Rollを計算
             var (yaw, pitch, roll) = QuaternionToEulerAngles(q);
@@ -36,6 +37,13 @@ namespace TestApp
             Console.WriteLine("Yaw (Z axis rotation): " + yaw + " degrees");
             Console.WriteLine("Pitch (Y axis rotation): " + pitch + " degrees");
             Console.WriteLine("Roll (X axis rotation): " + roll + " degrees");
+
+            //SpaceDriveCalc
+
+            DriveAxisPos dp = new DriveAxisPos();
+            SpaceDriveCalc sdc = new SpaceDriveCalc();
+            sdc.Calc(p1, v1, dp, true);
+
             Console.ReadKey();
         }
 

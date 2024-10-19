@@ -2,70 +2,77 @@
 using System;
 using System.Numerics;
 
+
+public class DriveAxisPos
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Z { get; set; }
+    public double A { get; set; }
+    public double C { get; set; }
+
+    public bool CAny = false;
+    public bool AAny = false;
+
+    // コンストラクタ
+    public DriveAxisPos(double x, double y, double z, double a, double c, bool aany, bool cany)
+    {
+        X = x;
+        Y = y;
+        Z = z;
+        A = a;
+        C = c;
+        AAny = aany;
+        CAny = cany;
+    }
+
+    public DriveAxisPos()
+    {
+        X = 0; Y=0; Z=0; A = 0; C = 0; AAny = false; CAny = false; 
+    }
+
+    // ToString() メソッド：オブジェクトの内容を文字列として返す
+    public override string ToString()
+    {
+        return $"X: {X}, Y: {Y}, Z: {Z}, A: {A}, C: {C}, AAny: {AAny}, CAny: {CAny}";
+    }
+
+    // IsEqual() メソッド：2つのDriveAxisPosオブジェクトが同じかどうかを判定する
+    public bool IsEqual(DriveAxisPos other)
+    {
+        if (other == null)
+            return false;
+
+        return (X == other.X && Y == other.Y && Z == other.Z && A == other.A && C == other.C);
+        //4軸が同じか
+        /*
+        bool cmp = (X == other.X && Y == other.Y && Z == other.Z && A == other.A);
+        if (cmp)
+        {
+            if (CAny == true)
+            {
+                //CがAnyの場合
+                return (other.CAny == true);
+            }
+            else                
+            {
+                //CがAnyでない場合
+                return (other.CAny ==false && C==other.C);
+            }
+        }
+        return false;
+        */
+    }
+}
+
 public class SpaceDriveCalc
 {
     //** 連続計算時の前回位置を覚えている
-    DriveAxisPos FPrevAxis;
+    //DriveAxisPos FPrevAxis=null;
     double OffsetA;
     bool IsRetract;
-    double RetractC; //C軸のリトラクト判定値
+    double RetractC=20; //C軸のリトラクト判定値
 
-    public class DriveAxisPos
-    {
-        public double X { get; set; }
-        public double Y { get; set; }
-        public double Z { get; set; }
-        public double A { get; set; }
-        public double C { get; set; }
-
-        public bool CAny = false;
-        public bool AAny = false;
-
-        // コンストラクタ
-        public DriveAxisPos(double x, double y, double z, double a, double c, bool aany, bool cany)
-        {
-            X = x;
-            Y = y;
-            Z = z;
-            A = a;
-            C = c;
-            AAny = aany;
-            CAny = cany;
-        }
-
-        // ToString() メソッド：オブジェクトの内容を文字列として返す
-        public override string ToString()
-        {
-            return $"X: {X}, Y: {Y}, Z: {Z}, A: {A}, C: {C}, AAny: {AAny}, CAny: {CAny}";
-        }
-
-        // IsEqual() メソッド：2つのDriveAxisPosオブジェクトが同じかどうかを判定する
-        public bool IsEqual(DriveAxisPos other)
-        {
-            if (other == null)
-                return false;
-
-            return (X == other.X && Y == other.Y && Z == other.Z && A == other.A && C== other.C);
-            //4軸が同じか
-            /*
-            bool cmp = (X == other.X && Y == other.Y && Z == other.Z && A == other.A);
-            if (cmp)
-            {
-                if (CAny == true)
-                {
-                    //CがAnyの場合
-                    return (other.CAny == true);
-                }
-                else                
-                {
-                    //CがAnyでない場合
-                    return (other.CAny ==false && C==other.C);
-                }
-            }
-            return false;
-            */
-        }
-    }
 
     static public double DegToRad( double aDeg)
     {
@@ -78,7 +85,10 @@ public class SpaceDriveCalc
     }
 
 
-    public void Calc(Vector3 aPos, Vector3 aNor, DriveAxisPos aDriveAxis, bool aFirst)
+    /*
+     * ドライブアクシス計算関数
+     */
+    public void Calc(Vector3 aPos, Vector3 aNor, DriveAxisPos aDriveAxis, DriveAxisPos PrevAxis=null)
     {
         // ここで、aPos（位置）、aNor（法線）、aDriveAxis（駆動軸の位置）に基づいて計算を実行します
         // 仮の計算
@@ -105,16 +115,16 @@ public class SpaceDriveCalc
         {
             aDriveAxis.CAny = true;
 
-            if (aFirst)
+            if (PrevAxis==null)
                 aDriveAxis.C = 0;
             else
-                aDriveAxis.C = FPrevAxis.C;
+                aDriveAxis.C = PrevAxis.C;
 
             rad_C = DegToRad(aDriveAxis.C);
         }
         else
         {
-            rad_C = Math.Atan2(aNor.X, aNor.X); // TODO Delphiと.netの仕様をチェック
+            rad_C = Math.Atan2(aNor.X, aNor.Y); // tanθ= Y/X  Delphiと.netの仕様をチェック .net:Math= (Y,X)  Delphi:arctan2=(Y,X)=OK
             aDriveAxis.C = RadToDeg(rad_C);
         }
 
@@ -126,15 +136,15 @@ public class SpaceDriveCalc
 
         if (cb1 == 0 && aNor.Z == 0) {
             aDriveAxis.AAny= true;                         //A軸は任意
-            if (aFirst)
+            if (PrevAxis==null)
                 aDriveAxis.A = 0;
             else
-                aDriveAxis.A = FPrevAxis.A;
+                aDriveAxis.A = PrevAxis.A;
             rad_A = DegToRad(aDriveAxis.A);
         }
         else
         {
-            rad_A = Math.Atan2(cb1, aNor.Z); // TODO Delphiと.netの仕様をチェック
+            rad_A = Math.Atan2(cb1, aNor.Z);
             aDriveAxis.A= RadToDeg(rad_A);
         }
 
@@ -149,13 +159,13 @@ public class SpaceDriveCalc
         aDriveAxis.Z = sin_A * cb1 + cos_A * cb2 - OffsetA;
 
         //前回の値と比較して、+-180度境界をまたぐかどうか TODO 180度ではないのでは？
-        if (!aFirst )
+        if (PrevAxis!=null)
         {
             while (true)
             {
-                if (Math.Abs(aDriveAxis.C - FPrevAxis.C) > 330)
+                if (Math.Abs(aDriveAxis.C - PrevAxis.C) > 330)
                 {
-                    if (aDriveAxis.C > FPrevAxis.C)
+                    if (aDriveAxis.C > PrevAxis.C)
                         aDriveAxis.C= aDriveAxis.C - 360;
                     else
                         aDriveAxis.C= aDriveAxis.C + 360;
@@ -164,7 +174,7 @@ public class SpaceDriveCalc
             }
 
             //前回の値と比較して、RetractC以上なら、リトラクトフラグを立てる
-            IsRetract= Math.Abs(aDriveAxis.C - FPrevAxis.C) > RetractC;
+            IsRetract= Math.Abs(aDriveAxis.C - PrevAxis.C) > RetractC;
         }
         else
         {
